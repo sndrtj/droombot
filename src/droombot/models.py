@@ -41,16 +41,17 @@ class Sampler(enum.Enum):
     K_LMS = "K_LMS"
 
 
+class FinishReason(enum.Enum):
+    CONTENT_FILTERED = "CONTENT_FILTERED"
+    ERROR = "ERROR"
+    SUCCESS = "SUCCESS"
+
+
 # It's 2023, and `pydantic.conint / conlist` still doesn't work nicely with mypy.
 # https://github.com/pydantic/pydantic/issues/156
 class SizeType(pydantic.ConstrainedInt):
     multiple_of = 64
     ge = 128
-
-
-class TextPrompts(pydantic.ConstrainedList):
-    item_type = TextPrompt
-    min_items = 1
 
 
 class CfgScaleType(pydantic.ConstrainedInt):
@@ -69,13 +70,13 @@ class StepsType(pydantic.ConstrainedInt):
 
 
 # Docs: https://platform.stability.ai/rest-api#tag/v1generation/operation/textToImage
-class GenerationRequest(pydantic.BaseModel):
+class TextToImageRequest(pydantic.BaseModel):
     engine_id: EngineId = "stable-diffusion-512-v2-0"
 
     height: SizeType = cast(SizeType, 512)
     width: SizeType = cast(SizeType, 512)
 
-    text_prompts: TextPrompts
+    text_prompts: list[TextPrompt]
     cfg_scale: CfgScaleType = cast(CfgScaleType, 7)
     clip_guidance_present: ClipGuidancePreset = ClipGuidancePreset.NONE
 
@@ -106,3 +107,28 @@ class GenerationRequest(pydantic.BaseModel):
             return v
 
         raise ValueError(f"Image size {image_size} is out of bounds.")
+
+    @pydantic.validator("text_prompts")
+    def text_prompts_must_be_at_least_one(cls, v):
+        # conlist can't seem to cope well with typedicts
+        # thus doing it with manual validator
+        if len(v) == 0:
+            raise ValueError("Text prompts must have at least one member")
+        return v
+
+
+class TextToImageResponse(pydantic.BaseModel):
+    # base-64 encoded image or null if finish reason is not success
+    base64: str | None
+    # the finish reason
+    finish_reason: FinishReason
+    # What seed ended up being used for this
+    seed: int
+
+    @classmethod
+    def from_raw_api(cls, raw_api_response: dict) -> "TextToImageResponse":
+        return cls(
+            base64=raw_api_response["base64"],
+            finish_reason=raw_api_response["finishReason"],
+            seed=raw_api_response["seed"],
+        )
