@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "droombot"
+version = "0.1.0"
+description = "Discord Bot for generating images from text prompts"
+authors = ["Sander Bollen <sander@sndrtj.eu>"]
+readme = "README.md"
+packages = [
+    {include = "droombot", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+"discord.py" = "^2.2.2"
+aiohttp = "^3.8.4"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
+mypy = "^1.1.1"
+isort = "^5.12.0"
+ruff = "^0.0.259"
+pytest = "^7.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
