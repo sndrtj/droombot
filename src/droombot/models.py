@@ -1,5 +1,5 @@
 import enum
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
 import pydantic
 
@@ -41,25 +41,52 @@ class Sampler(enum.Enum):
     K_LMS = "K_LMS"
 
 
+# It's 2023, and `pydantic.conint / conlist` still doesn't work nicely with mypy.
+# https://github.com/pydantic/pydantic/issues/156
+class SizeType(pydantic.ConstrainedInt):
+    multiple_of = 64
+    ge = 128
+
+
+class TextPrompts(pydantic.ConstrainedList):
+    item_type = TextPrompt
+    min_items = 1
+
+
+class CfgScaleType(pydantic.ConstrainedInt):
+    ge = 0
+    le = 35
+
+
+class SeedType(pydantic.ConstrainedInt):
+    ge = 0
+    le = 4294967295
+
+
+class StepsType(pydantic.ConstrainedInt):
+    ge = 10
+    le = 150
+
+
 # Docs: https://platform.stability.ai/rest-api#tag/v1generation/operation/textToImage
 class GenerationRequest(pydantic.BaseModel):
     engine_id: EngineId = "stable-diffusion-512-v2-0"
 
-    height: pydantic.conint(multiple_of=64, ge=128) = 512
-    width: pydantic.conint(multiple_of=64, ge=128) = 512
+    height: SizeType = cast(SizeType, 512)
+    width: SizeType = cast(SizeType, 512)
 
-    text_prompts: pydantic.conlist(TextPrompt, min_items=1)
-    cfg_scale: pydantic.conint(ge=0, le=35) = 7
+    text_prompts: TextPrompts
+    cfg_scale: CfgScaleType = cast(CfgScaleType, 7)
     clip_guidance_present: ClipGuidancePreset = ClipGuidancePreset.NONE
 
     # None should indicate omit from api call
     sampler: Sampler | None = None
 
     # 0 = random
-    seed: pydantic.conint(ge=0, le=4294967295) = 0
+    seed: SeedType = cast(SeedType, 0)
 
     # number of diffusion steps
-    steps: pydantic.conint(ge=10, le=150) = 50
+    steps: StepsType = cast(StepsType, 50)
 
     @pydantic.validator("width")
     def image_size_must_be_within_bounds(cls, v, values, **kwargs):
