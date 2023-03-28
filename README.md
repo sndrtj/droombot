@@ -8,3 +8,4 @@ It uses Stability.ai's APIs under the hood.
 
 * Rate-limiter
 * logging
+* Set custom user agent
