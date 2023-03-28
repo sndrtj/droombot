@@ -71,7 +71,7 @@ class StepsType(pydantic.ConstrainedInt):
 
 # Docs: https://platform.stability.ai/rest-api#tag/v1generation/operation/textToImage
 class TextToImageRequest(pydantic.BaseModel):
-    engine_id: EngineId = "stable-diffusion-512-v2-0"
+    engine_id: EngineId = "stable-diffusion-512-v2-1"
 
     height: SizeType = cast(SizeType, 512)
     width: SizeType = cast(SizeType, 512)
