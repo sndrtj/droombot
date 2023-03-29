@@ -1,10 +1,13 @@
 import asyncio
 import json
-import os
+import logging
 
 import aiohttp
 
+from .config import STABILITY_API_KEY
 from .models import TextToImageRequest, TextToImageResponse
+
+logger = logging.getLogger(__name__)
 
 TEX_TO_IMAGE_BASE_URL = "https://api.stability.ai/v1/generation"
 
@@ -21,10 +24,13 @@ async def text_to_image(
     :return: list of responses, one for each text prompt
     :raises: timeout
     """
-    # note, this is blocking
-    stability_api_key = os.getenv("STABILITY_API_KEY")
-    headers = {"Authorization": f"Bearer {stability_api_key}"}
+    logger.info(
+        "Incoming call for text-to-image generation with "
+        f"engine id {request.engine_id}"
+    )
+    headers = {"Authorization": f"Bearer {STABILITY_API_KEY}"}
     url = f"{TEX_TO_IMAGE_BASE_URL}/{request.engine_id}/text-to-image"
+    logger.debug(f"Generated url: {url}")
 
     # FIXME: need to load json serialized because enums.
     raw_post_data = json.loads(request.json())
@@ -42,11 +48,12 @@ async def text_to_image(
     ) as resp:
         results = await resp.json()
         if resp.status >= 400:
-            print(results)
+            logger.error(f"Call to Stability errored. Response: {results}")
             raise ValueError("An error occurred")
 
     # responses are encoded in an 'artifacts' item, but this is NOT
     # mentioned in the docs.
+    logger.info("Received a successful response from text-to-image generation.")
     return [TextToImageResponse.from_raw_api(r) for r in results["artifacts"]]
 
 
