@@ -14,6 +14,8 @@ aiohttp = {version ="^3.8.4", extras = ['speedups'] }
 pydantic = "^1.10.7"
 click = "^8.1.3"
 py-cord = {extras = ["speed"], version = "^2.4.1"}
+redis = "^4.5.4"
+aiolimiter = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -22,9 +24,11 @@ mypy = "^1.1.1"
 isort = "^5.12.0"
 ruff = "^0.0.259"
 pytest = "^7.2.2"
+pre-commit = "^3.2.1"
+types-redis = "^4.5.4.1"
 
 [tool.poetry.scripts]
-droombot = 'droombot.cli:droombot'
+droombot = 'droombot.cli:cli'
 
 
 [build-system]

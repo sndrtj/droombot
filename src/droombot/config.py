@@ -12,3 +12,15 @@ DISCORD_BOT_TOKEN = os.environ.get("DISCORD_BOT_TOKEN")
 DISCORD_GUILD_IDS = [
     item for item in os.environ.get("DISCORD_GUILD_IDS", "").split(",") if item != ""
 ]
+
+
+# Redis settings
+REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+# how long keys set in redis need to live before being deleted, in seconds.
+REDIS_KEY_LIFETIME = int(os.environ.get("REDIS_KEY_LIFETIME", 300))
+
+# Concurrency settings
+# Maximum number of requests per minute to redis and Stability. Note that
+# bursty behaviour may still happen, as long as it stays less than the maximum.
+MAX_REQUESTS_PER_MINUTE = int(os.environ.get("MAX_REQUESTS_PER_MINUTE", 100))

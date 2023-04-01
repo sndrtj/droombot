@@ -132,3 +132,13 @@ class TextToImageResponse(pydantic.BaseModel):
             finish_reason=raw_api_response["finishReason"],
             seed=raw_api_response["seed"],
         )
+
+
+class PubSubMessage(pydantic.BaseModel):
+    """Message used for passing in pub/sub"""
+
+    # the discord interaction id
+    interaction_id: str
+
+    # The text prompt used
+    text_prompt: str
