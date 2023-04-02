@@ -23,7 +23,7 @@ def get_version() -> str:
             .stdout.decode("utf-8")
             .strip()
         )
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         git_tag = None
 
     base_version = importlib.metadata.version("droombot")
