@@ -45,19 +45,18 @@ Redis is used as a message broker between the `server` and the `worker`(s).
 
 All configuration is handled via environment variables. See the following table
 
-| Environment variable      | Description                                                                    | Is Required               | 
+| Environment variable      | Description                                                                    | Is Required               |
 |---------------------------|--------------------------------------------------------------------------------|---------------------------|
-| `DISCORD_BOT_TOKEN`       | Token for your discord application                                             | Yes                       | 
+| `DISCORD_BOT_TOKEN`       | Token for your discord application                                             | Yes                       |
 | `DISCORD_GUILD_IDS`       | Comma-separated list of guild (server) ids you want to allow access to the bot | Yes                       |
 | `STABILITY_API_KEY`       | API key from Stability AI                                                      | Yes                       |
-| `REDIS_HOST`              | Hostname of Redis instance                                                     | No, defaults to localhost | 
-| `REDIS_PORT`              | Port of Redis instance                                                         | No, defaults to 6379      | 
+| `REDIS_HOST`              | Hostname of Redis instance                                                     | No, defaults to localhost |
+| `REDIS_PORT`              | Port of Redis instance                                                         | No, defaults to 6379      |
 | `REDIS_KEY_LIFETIME`      | Number of seconds for keys to expire                                           | No, defaults to 300       |
 | `MAX_REQUESTS_PER_MINUTE` | Maximum number of requests per minute to any remote services                   | No, defaults to 100       |
 
 ## Todo:
 
-* Set custom user agent
 * Dockerfile / Podmanfile
     * Instructions on how to use systemd to autostart
 
@@ -66,4 +65,4 @@ All configuration is handled via environment variables. See the following table
 
 1. Expose additional options, such as multiple images and model selection.
 2. Ability to run Stable Diffusion directly, with a separate worker class
-3. Prompt translations, allowing users to use prompts in their own language. 
+3. Prompt translations, allowing users to use prompts in their own language.

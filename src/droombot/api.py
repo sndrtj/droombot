@@ -6,6 +6,7 @@ import aiohttp
 
 from .config import STABILITY_API_KEY
 from .models import TextToImageRequest, TextToImageResponse
+from .version import VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,8 @@ async def text_to_image(
         "Incoming call for text-to-image generation with "
         f"engine id {request.engine_id}"
     )
-    headers = {"Authorization": f"Bearer {STABILITY_API_KEY}"}
+    user_agent = f"droombot/{VERSION}"
+    headers = {"Authorization": f"Bearer {STABILITY_API_KEY}", "User-Agent": user_agent}
     url = f"{TEX_TO_IMAGE_BASE_URL}/{request.engine_id}/text-to-image"
     logger.debug(f"Generated url: {url}")
 
