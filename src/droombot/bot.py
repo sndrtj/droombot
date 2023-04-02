@@ -67,13 +67,14 @@ def create_bot() -> discord.Bot:
         logger.info(f"Prompt message: {text}")
         if text == "":
             await ctx.respond(
-                f"Hi {ctx.interaction.user.name}. Your prompt text may not be empty"
+                f"Hi {ctx.interaction.user.mention}. Your prompt text may not be empty"
             )
             return
 
         await ctx.respond(
-            f"Hi {ctx.interaction.user.name}! We will now be generating your image. "
-            f"This may take a minute."
+            f"Hi {ctx.interaction.user.mention}! Your prompt: **{text}**. "
+            "We will now be generating your image. "
+            "This may take a minute."
         )
 
         logger.info("Sending message to redis for worker to pick up")
