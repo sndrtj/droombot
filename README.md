@@ -102,6 +102,7 @@ for how to configure systemd with the generated units.
 
 ## Future plans
 
-1. Expose additional options, such as multiple images and model selection.
-2. Ability to run Stable Diffusion directly, with a separate worker class
-3. Prompt translations, allowing users to use prompts in their own language.
+1. Publish to PyPI
+2. Expose additional options, such as multiple images and model selection.
+3. Ability to run Stable Diffusion directly, with a separate worker class
+4. Prompt translations, allowing users to use prompts in their own language.
