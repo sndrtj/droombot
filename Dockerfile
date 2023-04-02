@@ -1,6 +1,7 @@
 FROM python:3.10-slim
 
 ENV POETRY_HOME=/etc/poetry
+ENV PYTHONUNBUFFERED=1
 WORKDIR /usr/src/app
 
 ## Install dependencies for installing poetry
