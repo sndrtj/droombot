@@ -18,7 +18,7 @@ poetry install
 
 ## How to run
 
-:zap: Note: this step is necessary if using a Container (see below)
+:zap: Note: this step is not necessary if using a Container (see below)
 
 Configure your environment (see configuration options below), and make sure a
 redis instance is running on your network (we recommend using a container).
