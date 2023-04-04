@@ -9,11 +9,10 @@ A future version may support running Stable Diffusion directly.
 
 :zap: Note: this step is not necessary if using a Container (see below)
 
-Install [poetry](https://python-poetry.org/) if you haven't already.
-Then run the following where-ever you cloned this repo.
+Run the following, preferably in a virtual environment, to install droombot
 
 ```console
-poetry install
+pip install droombot
 ```
 
 ## How to run
@@ -23,16 +22,16 @@ poetry install
 Configure your environment (see configuration options below), and make sure a
 redis instance is running on your network (we recommend using a container).
 
-To start the bot, run the following where-ever you cloned this repo.
+To start the bot, run the following in the virtual environment:
 
 ```console
-poetry run droombot server
+droombot server
 ```
 
-To start a worker, run the following where-ever you cloned this repo.
+To start a worker, run the following in the virtual environment
 
 ```console
-poetry run droombot worker
+droombot worker
 ```
 
 ## Components
@@ -59,50 +58,14 @@ All configuration is handled via environment variables. See the following table
 | `REDIS_KEY_LIFETIME`      | Number of seconds for keys to expire                                           | No, defaults to 300       |
 | `MAX_REQUESTS_PER_MINUTE` | Maximum number of requests per minute to any remote services                   | No, defaults to 100       |
 
-## Todo:
-
-* Dockerfile / Podmanfile
-    * Instructions on how to use systemd to autostart
-
 
 ## Container
 
-We recommend running droombot as a container. The provided Dockerfile builds a
-container that can run both the `server` and `worker` components.
-
-
-### Docker
-When using docker, run the following:
-
-```console
-docker build . -t droombot
-docker run -p 6379:6379 -d --name droombot-redis redis:latest
-docker run -e DISCORD_BOT_TOKEN=<token> -e DISCORD_GUILD_IDS=<ids> -d --name droombot-server droombot server
-docker run -e STABILITY_API_KEY=<key> -e DISCORD_BOT_TOKEN=<token> -e DISCORD_GUILD_IDS=<ids> -d --name droombot-worker droombot worker
-```
-
-### Podman
-
-When using podman, you can create a podman pod. After setting up the services
-within the pod, you can then generate a set of systemd unit files. Very useful for
-automatically starting services at boot!
-
-```console
-podman build . -t droombot
-podman pod create --name droombot-pod
-podman run -d --name droombot-redis --pod droombot-pod redis:latest
-podman run -e DISCORD_BOT_TOKEN=<token> -e DISCORD_GUILD_IDS=<ids> -d --name droombot-server --pod droombot-pod  droombot server
-podman run -e STABILITY_API_KEY=<key> -e DISCORD_BOT_TOKEN=<token> -e DISCORD_GUILD_IDS=<ids> -d --name droombot-worker --pod droombot-pod droombot worker
-```
-
-You can then run `podman generate systemd --new --files --name droombot-pod` to
-generate systemd unit files. See [this guide](https://www.redhat.com/sysadmin/podman-run-pods-systemd-services)
-for how to configure systemd with the generated units.
-
+Droombot can run as a container. For a howto using Docker or Podman, see the 
+[container docs](docs/containers.md).
 
 ## Future plans
 
-1. Publish to PyPI
-2. Expose additional options, such as multiple images and model selection.
-3. Ability to run Stable Diffusion directly, with a separate worker class
-4. Prompt translations, allowing users to use prompts in their own language.
+1. Expose additional options, such as multiple images and model selection.
+2. Ability to run Stable Diffusion directly, with a separate worker class
+3. Prompt translations, allowing users to use prompts in their own language.
