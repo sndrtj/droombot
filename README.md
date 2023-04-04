@@ -5,6 +5,8 @@ Droombot is a discord bot for generating images from text prompts.
 At current, it uses an API call to Stability.ai to generate images.
 A future version may support running Stable Diffusion directly.
 
+![example](/docs/img/droombot_example.gif)
+
 ## Installing
 
 :zap: Note: this step is not necessary if using a Container (see below)
