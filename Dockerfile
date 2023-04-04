@@ -13,7 +13,7 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Copy things over
 COPY src/ src/
-COPY README.md poetry.lock pyproject.toml scripts/entrypoint.sh ./
+COPY README.md poetry.lock pyproject.toml LICENSE scripts/entrypoint.sh ./
 RUN chmod +x ./entrypoint.sh
 
 ## Install python dependencies
