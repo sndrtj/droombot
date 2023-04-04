@@ -65,10 +65,10 @@ All configuration is handled via environment variables. See the following table
     * Instructions on how to use systemd to autostart
 
 
-## Container 
+## Container
 
-We recommend running droombot as a container. The provided Dockerfile builds a 
-container that can run both the `server` and `worker` components. 
+We recommend running droombot as a container. The provided Dockerfile builds a
+container that can run both the `server` and `worker` components.
 
 
 ### Docker
@@ -97,7 +97,7 @@ podman run -e STABILITY_API_KEY=<key> -e DISCORD_BOT_TOKEN=<token> -e DISCORD_GU
 
 You can then run `podman generate systemd --new --files --name droombot-pod` to
 generate systemd unit files. See [this guide](https://www.redhat.com/sysadmin/podman-run-pods-systemd-services)
-for how to configure systemd with the generated units. 
+for how to configure systemd with the generated units.
 
 
 ## Future plans

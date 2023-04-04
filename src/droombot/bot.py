@@ -1,3 +1,17 @@
+#    Copyright 2023 Sander Bollen
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+
 import logging
 import time
 
@@ -24,7 +38,7 @@ async def poll_interaction_result(
     :param redis_connection: Redis instance to poll from
     :param interaction_id: interaction id to retrieve
     :param timeout: timeout in seconds, after which we bail
-    :return: list of text to image repsonses
+    :return: list of text to image responses
     :raises: TimeOutError
     """
     interaction_key = f"interaction:{interaction_id}"
