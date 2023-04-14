@@ -1,4 +1,13 @@
-on: [ push ]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - 'main'
 name: build
 env:
   REGISTRY: ghcr.io
