@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "droombot"
-version = "0.1.0"
+version = "0.2.0a0"
 description = "A Discord Bot for generating images from text prompts"
 authors = ["Sander Bollen <sander@sndrtj.eu>"]
 readme = "README.md"
