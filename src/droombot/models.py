@@ -11,11 +11,15 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-
+import argparse
 import enum
+import logging
+import shlex
 from typing import Annotated, Literal
 
 import pydantic
+
+logger = logging.getLogger(__name__)
 
 
 class FinishReason(enum.Enum):
@@ -108,5 +112,19 @@ def pubsub_to_t2i(
     :param message: the message
     :return: text to image request
     """
-    # FIXME: core only for now...
-    return TextToImageRequestV2Core(prompt=message.text_prompt)
+    parser = argparse.ArgumentParser(exit_on_error=False)
+    parser.add_argument(
+        "-m", "--model", choices=["core", "sd3", "sd3-turbo"], default="core"
+    )
+
+    # we want to consider everything before a `-` as the text prompt, without quoting.
+    prompt, maybe_dash, options = message.text_prompt.partition("-")
+
+    args, failures = parser.parse_known_args(shlex.split(maybe_dash + options), None)
+    if failures:
+        logger.warning(f"Unrecognized arguments: {''.join(failures)}, ignoring...")
+
+    if args.model == "core":
+        return TextToImageRequestV2Core(prompt=prompt.strip())
+
+    return TextToImageRequestV2SD3(prompt=prompt.strip(), model=args.model)
