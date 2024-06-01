@@ -38,6 +38,17 @@ To start a worker, run the following in the virtual environment
 droombot worker
 ```
 
+## How to use in discord
+
+Use the `/prompt` command to type your prompt. This by default uses whatever model
+Stability AI now considers its "core". You can also select Stable Diffusion 3 and
+Stable Diffusion 3 Turbo models by appending `-m sd3` or `-m sd3-turbo` to your
+prompt.
+
+You can give individual words in your prompt more some weight by doing something like
+the following;
+``A table with (red:0.5) raspberries and (purple:0.5) blueberries.``
+
 ## Components
 
 Droombot consists of two components:
@@ -65,7 +76,7 @@ All configuration is handled via environment variables. See the following table
 
 ## Container
 
-Droombot can run as a container. For a howto using Docker or Podman, see the 
+Droombot can run as a container. For a howto using Docker or Podman, see the
 [container docs](docs/containers.md).
 
 ## Future plans

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "droombot"
-version = "0.2.0a0"
+version = "0.2.0"
 description = "A Discord Bot for generating images from text prompts"
 authors = ["Sander Bollen <sander@sndrtj.eu>"]
 readme = "README.md"
@@ -17,18 +17,17 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10"
 aiohttp = {version ="^3.8.4", extras = ['speedups'] }
-pydantic = "^1.10.7"
+pydantic = "^2.7.2"
 click = "^8.1.3"
 py-cord = {extras = ["speed"], version = "^2.4.1"}
 redis = {extras = ["hiredis"], version = "^4.5.4"}
 aiolimiter = "^1.0.0"
+typing-extensions = "^4.12.0"
 
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.1.0"
 mypy = "^1.1.1"
-isort = "^5.12.0"
-ruff = "^0.0.259"
+ruff = "^0.4.7"
 pytest = "^7.2.2"
 pre-commit = "^3.2.1"
 types-redis = "^4.5.4.1"
@@ -41,6 +40,5 @@ droombot = 'droombot.cli:cli'
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select =  ["E4", "E7", "E9", "F", "I"]

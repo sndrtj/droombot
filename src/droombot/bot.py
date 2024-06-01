@@ -1,4 +1,4 @@
-#    Copyright 2023 Sander Bollen
+#    Copyright 2023-2024 Sander Bollen
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -55,7 +55,9 @@ async def poll_interaction_result(
             continue
 
         logger.debug("Found results, parsing to response")
-        return pydantic.parse_raw_as(list[TextToImageResponse], raw_results)
+        return pydantic.TypeAdapter(list[TextToImageResponse]).validate_json(
+            raw_results
+        )
 
 
 def create_bot() -> discord.Bot:
@@ -96,7 +98,7 @@ def create_bot() -> discord.Bot:
             interaction_id=str(ctx.interaction.id), text_prompt=text
         )
 
-        await redis_connection.publish("droombot-prompts", message.json())
+        await redis_connection.publish("droombot-prompts", message.model_dump_json())
         logger.info("Polling for result")
 
         try:

@@ -1,4 +1,4 @@
-#    Copyright 2023 Sander Bollen
+#    Copyright 2023-2024 Sander Bollen
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -11,49 +11,15 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-
-
+import argparse
 import enum
-from typing import Literal, TypedDict, cast
+import logging
+import shlex
+from typing import Annotated, Literal
 
 import pydantic
 
-EngineId = Literal[
-    "Stable Diffusion v1.4",
-    "stable-diffusion-v1-5",
-    "stable-diffusion-512-v2-0",
-    "stable-diffusion-768-v2-0",
-    "stable-diffusion-512-v2-1",
-    "stable-diffusion-768-v2-1",
-]
-
-
-class TextPrompt(TypedDict):
-    text: str
-    weight: float
-
-
-class ClipGuidancePreset(enum.Enum):
-    NONE = "NONE"
-    FAST_BLUE = "FAST_BLUE"
-    FAST_GREEN = "FAST_GREEN"
-    SIMPLE = "SIMPLE"
-    SLOW = "SLOW"
-    SLOWER = "SLOWER"
-    SLOWEST = "SLOWEST"
-
-
-class Sampler(enum.Enum):
-    DDIM = "DDIM"
-    DDPM = "DDPM"
-    K_DPMPP_2M = "K_DPMPP_2M"
-    K_DPMPP_2S_ANCESTRAL = "K_DPMPP_2S_ANCESTRAL"
-    K_DPM_2 = "K_DPM_2"
-    K_DPM_2_ANCESTRAL = "K_DPM_2_ANCESTRAL"
-    K_EULER = "K_EULER"
-    K_EULER_ANCESTRAL = "K_EULER_ANCESTRAL"
-    K_HEUN = "K_HEUN"
-    K_LMS = "K_LMS"
+logger = logging.getLogger(__name__)
 
 
 class FinishReason(enum.Enum):
@@ -62,74 +28,31 @@ class FinishReason(enum.Enum):
     SUCCESS = "SUCCESS"
 
 
-# It's 2023, and `pydantic.conint / conlist` still doesn't work nicely with mypy.
-# https://github.com/pydantic/pydantic/issues/156
-class SizeType(pydantic.ConstrainedInt):
-    multiple_of = 64
-    ge = 128
+ASPECT_RATIOS = Literal["16:9", "1:1", "21:9", "2:3", "3:2", "4:5", "9:16", "9:21"]
+STYLE_PRESETS = Literal[
+    "3d-model",
+    "analog-film",
+    "anime",
+    "cinematic",
+    "comic-book",
+    "digital-art",
+    "enhance",
+    "fantasy-art",
+    "isometric",
+    "line-art",
+    "low-poly",
+    "modeling-compound",
+    "neon-punk",
+    "origami",
+    "photographic",
+    "pixel-art",
+    "tile-texture",
+]
 
 
-class CfgScaleType(pydantic.ConstrainedInt):
-    ge = 0
-    le = 35
-
-
-class SeedType(pydantic.ConstrainedInt):
-    ge = 0
-    le = 4294967295
-
-
-class StepsType(pydantic.ConstrainedInt):
-    ge = 10
-    le = 150
-
-
-# Docs: https://platform.stability.ai/rest-api#tag/v1generation/operation/textToImage
-class TextToImageRequest(pydantic.BaseModel):
-    engine_id: EngineId = "stable-diffusion-512-v2-1"
-
-    height: SizeType = cast(SizeType, 512)
-    width: SizeType = cast(SizeType, 512)
-
-    text_prompts: list[TextPrompt]
-    cfg_scale: CfgScaleType = cast(CfgScaleType, 7)
-    clip_guidance_present: ClipGuidancePreset = ClipGuidancePreset.NONE
-
-    # None should indicate omit from api call
-    sampler: Sampler | None = None
-
-    # 0 = random
-    seed: SeedType = cast(SeedType, 0)
-
-    # number of diffusion steps
-    steps: StepsType = cast(StepsType, 50)
-
-    @pydantic.validator("width")
-    def image_size_must_be_within_bounds(cls, v, values, **kwargs):
-        # height and width must be between 589,824 and ≤ 1,048,576 if model is 768
-        # else between 262,144 and  1,048,576
-        engine_id = values["engine_id"]
-        height = values["height"]
-
-        image_size = height * v
-
-        if "768" in engine_id:
-            min_bound = 589_824
-        else:
-            min_bound = 262_144
-
-        if min_bound <= image_size <= 1_048_576:
-            return v
-
-        raise ValueError(f"Image size {image_size} is out of bounds.")
-
-    @pydantic.validator("text_prompts")
-    def text_prompts_must_be_at_least_one(cls, v):
-        # conlist can't seem to cope well with typedicts
-        # thus doing it with manual validator
-        if len(v) == 0:
-            raise ValueError("Text prompts must have at least one member")
-        return v
+SeedType = Annotated[int, pydantic.Field(ge=0, le=4294967295)]
+PromptType = Annotated[str, pydantic.Field(min_length=1, max_length=10_000)]
+NegativePromptType = Annotated[str, pydantic.Field(min_length=0, max_length=10_000)]
 
 
 class TextToImageResponse(pydantic.BaseModel):
@@ -143,10 +66,32 @@ class TextToImageResponse(pydantic.BaseModel):
     @classmethod
     def from_raw_api(cls, raw_api_response: dict) -> "TextToImageResponse":
         return cls(
-            base64=raw_api_response["base64"],
-            finish_reason=raw_api_response["finishReason"],
+            base64=raw_api_response["image"],
+            finish_reason=raw_api_response["finish_reason"],
             seed=raw_api_response["seed"],
         )
+
+
+class TextToImageRequestV2Core(pydantic.BaseModel):
+    """TextToImage request for the core v2 api of Stability AI"""
+
+    prompt: PromptType
+    aspect_ratio: ASPECT_RATIOS = "1:1"
+    negative_prompt: NegativePromptType | None = None
+    seed: SeedType = 0
+    style_preset: STYLE_PRESETS | None = None
+    output_format: Literal["jpeg", "png", "webp"] = "png"
+
+
+class TextToImageRequestV2SD3(pydantic.BaseModel):
+    """TextToImage request for the Stable Diffusion 3 api of Stability AI"""
+
+    prompt: PromptType
+    aspect_ratio: ASPECT_RATIOS = "1:1"
+    negative_prompt: NegativePromptType | None = None
+    model: Literal["sd3", "sd3-turbo"] = "sd3"
+    seed: SeedType = 0
+    output_format: Literal["jpeg", "png"] = "png"
 
 
 class PubSubMessage(pydantic.BaseModel):
@@ -157,3 +102,29 @@ class PubSubMessage(pydantic.BaseModel):
 
     # The text prompt used
     text_prompt: str
+
+
+def pubsub_to_t2i(
+    message: PubSubMessage,
+) -> TextToImageRequestV2Core | TextToImageRequestV2SD3:
+    """Convert a pubsub message to a text 2 image request
+
+    :param message: the message
+    :return: text to image request
+    """
+    parser = argparse.ArgumentParser(exit_on_error=False)
+    parser.add_argument(
+        "-m", "--model", choices=["core", "sd3", "sd3-turbo"], default="core"
+    )
+
+    # we want to consider everything before a `-` as the text prompt, without quoting.
+    prompt, maybe_dash, options = message.text_prompt.partition("-")
+
+    args, failures = parser.parse_known_args(shlex.split(maybe_dash + options), None)
+    if failures:
+        logger.warning(f"Unrecognized arguments: {''.join(failures)}, ignoring...")
+
+    if args.model == "core":
+        return TextToImageRequestV2Core(prompt=prompt.strip())
+
+    return TextToImageRequestV2SD3(prompt=prompt.strip(), model=args.model)
