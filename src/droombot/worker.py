@@ -25,7 +25,7 @@ from aiolimiter import AsyncLimiter
 
 from .api import text_to_image
 from .config import MAX_REQUESTS_PER_MINUTE, REDIS_HOST, REDIS_KEY_LIFETIME, REDIS_PORT
-from .models import PubSubMessage, TextPrompt, TextToImageRequest
+from .models import PubSubMessage, pubsub_to_t2i
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +74,7 @@ class Worker:
             f"'{deserialized_message.text_prompt}'"
         )
 
-        text_to_image_request = TextToImageRequest(
-            text_prompts=[TextPrompt(text=deserialized_message.text_prompt, weight=1.0)]
-        )
+        text_to_image_request = pubsub_to_t2i(message)
 
         logger.info("Running text-to-image conversion")
         responses = await text_to_image(session, text_to_image_request)

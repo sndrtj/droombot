@@ -13,53 +13,9 @@
 #    limitations under the License.
 
 import enum
-import sys
 from typing import Annotated, Literal
 
-# See https://docs.pydantic.dev/2.7/errors/usage_errors/#typed-dict-version
-if sys.version_info < (3, 12):
-    from typing_extensions import TypedDict
-else:
-    from typing import TypedDict
-
 import pydantic
-
-EngineId = Literal[
-    "Stable Diffusion v1.4",
-    "stable-diffusion-v1-5",
-    "stable-diffusion-512-v2-0",
-    "stable-diffusion-768-v2-0",
-    "stable-diffusion-512-v2-1",
-    "stable-diffusion-768-v2-1",
-]
-
-
-class TextPrompt(TypedDict):
-    text: str
-    weight: float
-
-
-class ClipGuidancePreset(enum.Enum):
-    NONE = "NONE"
-    FAST_BLUE = "FAST_BLUE"
-    FAST_GREEN = "FAST_GREEN"
-    SIMPLE = "SIMPLE"
-    SLOW = "SLOW"
-    SLOWER = "SLOWER"
-    SLOWEST = "SLOWEST"
-
-
-class Sampler(enum.Enum):
-    DDIM = "DDIM"
-    DDPM = "DDPM"
-    K_DPMPP_2M = "K_DPMPP_2M"
-    K_DPMPP_2S_ANCESTRAL = "K_DPMPP_2S_ANCESTRAL"
-    K_DPM_2 = "K_DPM_2"
-    K_DPM_2_ANCESTRAL = "K_DPM_2_ANCESTRAL"
-    K_EULER = "K_EULER"
-    K_EULER_ANCESTRAL = "K_EULER_ANCESTRAL"
-    K_HEUN = "K_HEUN"
-    K_LMS = "K_LMS"
 
 
 class FinishReason(enum.Enum):
@@ -68,49 +24,31 @@ class FinishReason(enum.Enum):
     SUCCESS = "SUCCESS"
 
 
-SizeType = Annotated[int, pydantic.Field(multiple_of=64, ge=128)]
-CfgScaleType = Annotated[int, pydantic.Field(ge=0, le=35)]
+ASPECT_RATIOS = Literal["16:9", "1:1", "21:9", "2:3", "3:2", "4:5", "9:16", "9:21"]
+STYLE_PRESETS = Literal[
+    "3d-model",
+    "analog-film",
+    "anime",
+    "cinematic",
+    "comic-book",
+    "digital-art",
+    "enhance",
+    "fantasy-art",
+    "isometric",
+    "line-art",
+    "low-poly",
+    "modeling-compound",
+    "neon-punk",
+    "origami",
+    "photographic",
+    "pixel-art",
+    "tile-texture",
+]
+
+
 SeedType = Annotated[int, pydantic.Field(ge=0, le=4294967295)]
-StepsType = Annotated[int, pydantic.Field(ge=10, le=150)]
-
-
-# Docs: https://platform.stability.ai/rest-api#tag/v1generation/operation/textToImage
-class TextToImageRequest(pydantic.BaseModel):
-    engine_id: EngineId = "stable-diffusion-512-v2-1"
-
-    height: SizeType = 512
-    width: SizeType = 512
-
-    text_prompts: Annotated[list[TextPrompt], pydantic.Field(min_length=1)]
-    cfg_scale: CfgScaleType = 7
-    clip_guidance_present: ClipGuidancePreset = ClipGuidancePreset.NONE
-
-    # None should indicate omit from api call
-    sampler: Sampler | None = None
-
-    # 0 = random
-    seed: SeedType = 0
-
-    # number of diffusion steps
-    steps: StepsType = 50
-
-    @pydantic.model_validator(mode="after")
-    def image_size_must_be_within_bounds(self) -> "TextToImageRequest":
-        engine_id = self.engine_id
-        height = self.height
-        width = self.width
-
-        image_size = height * width
-
-        if "768" in engine_id:
-            min_bound = 589_824
-        else:
-            min_bound = 262_144
-
-        if min_bound <= image_size <= 1_048_576:
-            return self
-
-        raise ValueError(f"Image size {image_size} is out of bounds.")
+PromptType = Annotated[str, pydantic.Field(min_length=1, max_length=10_000)]
+NegativePromptType = Annotated[str, pydantic.Field(min_length=0, max_length=10_000)]
 
 
 class TextToImageResponse(pydantic.BaseModel):
@@ -124,10 +62,32 @@ class TextToImageResponse(pydantic.BaseModel):
     @classmethod
     def from_raw_api(cls, raw_api_response: dict) -> "TextToImageResponse":
         return cls(
-            base64=raw_api_response["base64"],
-            finish_reason=raw_api_response["finishReason"],
+            base64=raw_api_response["image"],
+            finish_reason=raw_api_response["finish_reason"],
             seed=raw_api_response["seed"],
         )
+
+
+class TextToImageRequestV2Core(pydantic.BaseModel):
+    """TextToImage request for the core v2 api of Stability AI"""
+
+    prompt: PromptType
+    aspect_ratio: ASPECT_RATIOS = "1:1"
+    negative_prompt: NegativePromptType | None = None
+    seed: SeedType = 0
+    style_preset: STYLE_PRESETS | None = None
+    output_format: Literal["jpeg", "png", "webp"] = "png"
+
+
+class TextToImageRequestV2SD3(pydantic.BaseModel):
+    """TextToImage request for the Stable Diffusion 3 api of Stability AI"""
+
+    prompt: PromptType
+    aspect_ratio: ASPECT_RATIOS = "1:1"
+    negative_prompt: NegativePromptType | None = None
+    model: Literal["sd3", "sd3-turbo"] = "sd3"
+    seed: SeedType = 0
+    output_format: Literal["jpeg", "png"] = "png"
 
 
 class PubSubMessage(pydantic.BaseModel):
@@ -138,3 +98,15 @@ class PubSubMessage(pydantic.BaseModel):
 
     # The text prompt used
     text_prompt: str
+
+
+def pubsub_to_t2i(
+    message: PubSubMessage,
+) -> TextToImageRequestV2Core | TextToImageRequestV2SD3:
+    """Convert a pubsub message to a text 2 image request
+
+    :param message: the message
+    :return: text to image request
+    """
+    # FIXME: core only for now...
+    return TextToImageRequestV2Core(prompt=message.text_prompt)

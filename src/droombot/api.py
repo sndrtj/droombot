@@ -18,16 +18,25 @@ import logging
 import aiohttp
 
 from .config import STABILITY_API_KEY
-from .models import TextToImageRequest, TextToImageResponse
+from .models import (
+    TextToImageRequestV2Core,
+    TextToImageRequestV2SD3,
+    TextToImageResponse,
+)
 from .version import VERSION
 
 logger = logging.getLogger(__name__)
 
-TEX_TO_IMAGE_BASE_URL = "https://api.stability.ai/v1/generation"
+CORE_TEXT_TO_IMAGE_BASE_URL = (
+    "https://api.stability.ai/v2beta/stable-image/generate/core"
+)
+SD3_TEXT_TO_IMAGE_BASE_URL = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
 
 
 async def text_to_image(
-    session: aiohttp.ClientSession, request: TextToImageRequest, timeout: int = 300
+    session: aiohttp.ClientSession,
+    request: TextToImageRequestV2Core | TextToImageRequestV2SD3,
+    timeout: int = 300,
 ) -> list[TextToImageResponse]:
     """Call Stability with a text to image request
 
@@ -38,28 +47,36 @@ async def text_to_image(
     :return: list of responses, one for each text prompt
     :raises: timeout
     """
-    logger.info(
-        "Incoming call for text-to-image generation with "
-        f"engine id {request.engine_id}"
-    )
-    user_agent = f"droombot/{VERSION}"
-    headers = {"Authorization": f"Bearer {STABILITY_API_KEY}", "User-Agent": user_agent}
-    url = f"{TEX_TO_IMAGE_BASE_URL}/{request.engine_id}/text-to-image"
-    logger.debug(f"Generated url: {url}")
+    match request:
+        case TextToImageRequestV2Core():
+            logger.info("Incoming call for text-to-image generation for Core")
+            url = CORE_TEXT_TO_IMAGE_BASE_URL
+        case TextToImageRequestV2SD3():
+            logger.info("Incoming call for text-to-image generation for SD3")
+            url = SD3_TEXT_TO_IMAGE_BASE_URL
+        case _:
+            raise ValueError(f"Unsupported request: {type(request)}")
 
-    # FIXME: need to load json serialized because enums.
+    user_agent = f"droombot/{VERSION}"
+    headers = {
+        "Authorization": f"Bearer {STABILITY_API_KEY}",
+        "User-Agent": user_agent,
+        "accept": "application/json",
+    }
+
     raw_post_data = request.model_dump(mode="json")
-    # need to filter out engine_id and sampler if it is none
-    post_data = {}
+    writer = aiohttp.MultipartWriter("form-data")
+    # filter out values that are None
     for k, v in raw_post_data.items():
-        if k == "engine_id":
+        if v is None:
             continue
-        if k == "sampler" and v is None:
-            continue
-        post_data[k] = v
+        writer.append(
+            aiohttp.StringPayload(value=str(v)),
+            headers={aiohttp.hdrs.CONTENT_DISPOSITION: f'form-data; name="{k}"'},
+        )
 
     async with session.post(
-        url=url, json=post_data, timeout=timeout, headers=headers
+        url=url, data=writer, timeout=timeout, headers=headers
     ) as resp:
         results = await resp.json()
         if resp.status >= 400:
@@ -69,23 +86,18 @@ async def text_to_image(
     # responses are encoded in an 'artifacts' item, but this is NOT
     # mentioned in the docs.
     logger.info("Received a successful response from text-to-image generation.")
-    return [TextToImageResponse.from_raw_api(r) for r in results["artifacts"]]
+    return [TextToImageResponse.from_raw_api(results)]
 
 
 if __name__ == "__main__":
     # for testing
     async def main():
-        request = TextToImageRequest(
-            text_prompts=[
-                {
-                    "text": "Green trees in a forest with ferns, oil painting",
-                    "weight": 0.5,
-                }
-            ],
+        request = TextToImageRequestV2Core(
+            prompt="Green trees in a forest with ferns, oil painting"
         )
         async with aiohttp.ClientSession() as session:
             results = await text_to_image(session, request)
 
-        print(results)
+        print(results[0].model_dump_json())
 
     asyncio.run(main())
