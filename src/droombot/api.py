@@ -13,7 +13,6 @@
 #    limitations under the License.
 
 import asyncio
-import json
 import logging
 
 import aiohttp
@@ -49,7 +48,7 @@ async def text_to_image(
     logger.debug(f"Generated url: {url}")
 
     # FIXME: need to load json serialized because enums.
-    raw_post_data = json.loads(request.json())
+    raw_post_data = request.model_dump(mode="json")
     # need to filter out engine_id and sampler if it is none
     post_data = {}
     for k, v in raw_post_data.items():

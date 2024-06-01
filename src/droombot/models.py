@@ -12,9 +12,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-
 import enum
-from typing import Literal, TypedDict, cast
+import sys
+from typing import Annotated, Literal
+
+# See https://docs.pydantic.dev/2.7/errors/usage_errors/#typed-dict-version
+if sys.version_info < (3, 12):
+    from typing_extensions import TypedDict
+else:
+    from typing import TypedDict
 
 import pydantic
 
@@ -62,56 +68,39 @@ class FinishReason(enum.Enum):
     SUCCESS = "SUCCESS"
 
 
-# It's 2023, and `pydantic.conint / conlist` still doesn't work nicely with mypy.
-# https://github.com/pydantic/pydantic/issues/156
-class SizeType(pydantic.ConstrainedInt):
-    multiple_of = 64
-    ge = 128
-
-
-class CfgScaleType(pydantic.ConstrainedInt):
-    ge = 0
-    le = 35
-
-
-class SeedType(pydantic.ConstrainedInt):
-    ge = 0
-    le = 4294967295
-
-
-class StepsType(pydantic.ConstrainedInt):
-    ge = 10
-    le = 150
+SizeType = Annotated[int, pydantic.Field(multiple_of=64, ge=128)]
+CfgScaleType = Annotated[int, pydantic.Field(ge=0, le=35)]
+SeedType = Annotated[int, pydantic.Field(ge=0, le=4294967295)]
+StepsType = Annotated[int, pydantic.Field(ge=10, le=150)]
 
 
 # Docs: https://platform.stability.ai/rest-api#tag/v1generation/operation/textToImage
 class TextToImageRequest(pydantic.BaseModel):
     engine_id: EngineId = "stable-diffusion-512-v2-1"
 
-    height: SizeType = cast(SizeType, 512)
-    width: SizeType = cast(SizeType, 512)
+    height: SizeType = 512
+    width: SizeType = 512
 
-    text_prompts: list[TextPrompt]
-    cfg_scale: CfgScaleType = cast(CfgScaleType, 7)
+    text_prompts: Annotated[list[TextPrompt], pydantic.Field(min_length=1)]
+    cfg_scale: CfgScaleType = 7
     clip_guidance_present: ClipGuidancePreset = ClipGuidancePreset.NONE
 
     # None should indicate omit from api call
     sampler: Sampler | None = None
 
     # 0 = random
-    seed: SeedType = cast(SeedType, 0)
+    seed: SeedType = 0
 
     # number of diffusion steps
-    steps: StepsType = cast(StepsType, 50)
+    steps: StepsType = 50
 
-    @pydantic.validator("width")
-    def image_size_must_be_within_bounds(cls, v, values, **kwargs):
-        # height and width must be between 589,824 and ≤ 1,048,576 if model is 768
-        # else between 262,144 and  1,048,576
-        engine_id = values["engine_id"]
-        height = values["height"]
+    @pydantic.model_validator(mode="after")
+    def image_size_must_be_within_bounds(self) -> "TextToImageRequest":
+        engine_id = self.engine_id
+        height = self.height
+        width = self.width
 
-        image_size = height * v
+        image_size = height * width
 
         if "768" in engine_id:
             min_bound = 589_824
@@ -119,17 +108,9 @@ class TextToImageRequest(pydantic.BaseModel):
             min_bound = 262_144
 
         if min_bound <= image_size <= 1_048_576:
-            return v
+            return self
 
         raise ValueError(f"Image size {image_size} is out of bounds.")
-
-    @pydantic.validator("text_prompts")
-    def text_prompts_must_be_at_least_one(cls, v):
-        # conlist can't seem to cope well with typedicts
-        # thus doing it with manual validator
-        if len(v) == 0:
-            raise ValueError("Text prompts must have at least one member")
-        return v
 
 
 class TextToImageResponse(pydantic.BaseModel):
