@@ -65,7 +65,7 @@ All configuration is handled via environment variables. See the following table
 
 ## Container
 
-Droombot can run as a container. For a howto using Docker or Podman, see the 
+Droombot can run as a container. For a howto using Docker or Podman, see the
 [container docs](docs/containers.md).
 
 ## Future plans

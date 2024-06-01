@@ -1,6 +1,5 @@
 import pydantic.error_wrappers
 import pytest
-
 from droombot.models import TextToImageRequest, TextToImageResponse
 
 

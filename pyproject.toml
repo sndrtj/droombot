@@ -25,10 +25,8 @@ aiolimiter = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.1.0"
 mypy = "^1.1.1"
-isort = "^5.12.0"
-ruff = "^0.0.259"
+ruff = "^0.4.7"
 pytest = "^7.2.2"
 pre-commit = "^3.2.1"
 types-redis = "^4.5.4.1"
@@ -41,6 +39,5 @@ droombot = 'droombot.cli:cli'
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
-[tool.isort]
-profile = "black"
+[tool.ruff.lint]
+select =  ["E4", "E7", "E9", "F", "I"]
